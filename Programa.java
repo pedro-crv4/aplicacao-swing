@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Vector;
 
 public class Programa extends JFrame implements ActionListener {  
     Connection con;
@@ -22,7 +23,7 @@ public class Programa extends JFrame implements ActionListener {
     JanelaConsulta janelaConsultaEmpresta;
 
     public Programa() {  
-        super("Multiple Document Interface");  
+        super("Trabalho Banco de Dados");  
             
         setBounds(50,50,700,500);  
         setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -178,15 +179,26 @@ class JanelaInsere extends JInternalFrame {
 
             pStmt = con.prepareStatement(query);
 
-            setLayout(new FlowLayout());
+            setLayout(new GridLayout(column_count + 1, 2));
+            setMaximumSize(new Dimension(700, 500));
 
             for(int i = 1; i <= column_count; i++) {
-                add(new JLabel(rsmd.getColumnName(i) + ":"));
+                JPanel panel = new JPanel();
+                JLabel label = new JLabel(rsmd.getColumnName(i) + ":");
+                label.setPreferredSize(new Dimension(100, 100));
+                panel.add(label);
                 textfields.add(new JTextField(30));
-                add(textfields.get(i - 1));
+                panel.add(textfields.get(i - 1));
+                add(panel);
             }
 
-            add(bt1 = new JButton("Insere"));
+            JPanel holderButton = new JPanel();
+
+            bt1 = new JButton("Insere");
+            bt1.setMaximumSize(new Dimension(150, 50));
+
+            holderButton.add(bt1);
+            add(holderButton);
             pack();
             setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             setVisible(true);
@@ -230,7 +242,6 @@ class JanelaConsulta extends JInternalFrame implements ActionListener {
     JDesktopPane desktop;
     JButton bt1;
     JTextField tf1;
-    JTextArea ta1;
     JLabel labelSelectedField;
     String selectedField;
     JPanel l1;
@@ -255,14 +266,8 @@ class JanelaConsulta extends JInternalFrame implements ActionListener {
             l1 = new JPanel();
 
             l1.add(fieldList);
-            add(l1, BorderLayout.NORTH);
-
-            l1 = new JPanel();
             l1.add(labelSelectedField = new JLabel(""));
             l1.add(tf1 = new JTextField(30));
-
-            JScrollPane scrollPane = new JScrollPane(ta1 = new JTextArea(5, 30));
-            l1.add(scrollPane);
 
             add(l1, BorderLayout.WEST);
 
@@ -279,6 +284,8 @@ class JanelaConsulta extends JInternalFrame implements ActionListener {
                     }
                 }
             });
+
+            fieldList.setSelectedIndex(0);
 
             l1 = new JPanel();
 
@@ -298,8 +305,6 @@ class JanelaConsulta extends JInternalFrame implements ActionListener {
 
     public void actionPerformed(ActionEvent e) {
         try {
-            ta1.setText("");
-
             pStmt.setString(1, tf1.getText());
 
             ResultSet rs = pStmt.executeQuery();
@@ -307,19 +312,19 @@ class JanelaConsulta extends JInternalFrame implements ActionListener {
             String tableName = metadata.getTableName(1);
             int column_count = metadata.getColumnCount();
 
-            String[] columnNames = new String[column_count];
-            
-            ArrayList<ArrayList<String>> array = new ArrayList<ArrayList<String>>();
+            Vector<String> columnNames = new Vector<String>(column_count);
+
+            Vector<Vector<String>> array = new Vector<Vector<String>>();
 
             int row = 1;
 
             while (rs.next()) {
-                ArrayList<String> temp = new ArrayList<String>();
+                Vector<String> temp = new Vector<String>();
                 for (int col = 1; col <= column_count; col++) {
                     String columnType = metadata.getColumnTypeName(col);
 
                     if (row == 1) {
-                        columnNames[col - 1] = metadata.getColumnName(col);
+                        columnNames.add(metadata.getColumnName(col));
                     }
 
                     if ( columnType == "VARCHAR" || columnType == "CHAR" ) {
@@ -332,21 +337,7 @@ class JanelaConsulta extends JInternalFrame implements ActionListener {
                 array.add(temp);
             }
 
-            Object[][] data = new Object[row][column_count];
-
-            String result = "";
-
-            for(int i = 0; i < row - 1; i++) {
-                for(int j = 0; j < column_count; j++) {
-                    System.out.print(array.get(i).get(j) + " - ");
-                    data[row - 1][j] = array.get(i).get(j);
-                    result += array.get(i).get(j) + " ";
-                }
-                ta1.append(result + "\n");
-                result = "";
-            }
-
-            JTable table = new JTable(data, columnNames);
+            JTable table = new JTable(array, columnNames);
 
             JScrollPane tabelPanel = new JScrollPane(table);
 
@@ -358,7 +349,6 @@ class JanelaConsulta extends JInternalFrame implements ActionListener {
 
             pack();
 
-            tf1.selectAll();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(desktop, "Problema interno action performed.\n"+ex, "Erro", JOptionPane.ERROR_MESSAGE);
         }
